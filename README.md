@@ -2,6 +2,15 @@
 
 Timehop for Pinboard.
 
+## Installation
+
+Requires Python 3.6+ (f-strings) and requests (e.g. `pip install --user
+requests`). Uses `tqdm` if installed.
+
+Copy [pinhop](pinhop) into your path.
+
+## Usage
+
 ```
 usage: pinhop [-h] [--token TOKEN] [-o OUT] [--month MONTH] [--open] yearsago
 
