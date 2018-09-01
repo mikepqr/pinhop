@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import calendar
-import datetime
+from datetime import datetime as dt
 import os
 
 import requests
@@ -111,26 +111,33 @@ def assemble_page(posts, title=""):
     """
 
 
-def pinhop(yearsago=1, year=None, month=None):
+def pinhop(yearsago=1, year=None, month=None, day=None):
     """
     Return bookmarks posted this month years ago, or in a specific year and
     month.
     """
+    if day:
+        assert year is not None
+        assert day is not None
+        days = ["-".join((str(year), str(month), str(day)))]
+    else:
+        days = None
     if year is None and month is None:
-        today = datetime.datetime.today()
+        today = dt.today()
         year, month = today.year - yearsago, today.month
-    days = days_of_month(year, month)
+    if not days:
+        days = days_of_month(year, month)
     return get_posts_days(days)
 
 
 def main():
     description = (
-        "Get pinboard posts from a previous month. By default, writes posts "
-        "from this month one year ago to pinhop.html."
+        "Get pinboard posts from a previous month or day. By default, writes "
+        "posts from this month one year ago to pinhop.html."
     )
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
-        "yearsago", help="years ago this month", default=1, nargs="?", type=int
+        "y", help="years ago this month", default=1, nargs="?", type=int
     )
     parser.add_argument(
         "--token",
@@ -142,8 +149,11 @@ def main():
     )
     parser.add_argument("-o", "--out", default="pinhop.html", help="output file")
     parser.add_argument(
-        "--month",
-        help="Get posts for particular month in YYYY-MM format (overrides -y)",
+        "--date",
+        help=(
+            "Get posts for particular month (YYYY-MM format) or day "
+            "(YYYY-MM-DD) (overrides y)"
+        ),
         default=None,
     )
     parser.add_argument(
@@ -160,15 +170,20 @@ def main():
     if args.out:
         fname = args.out
 
-    if args.month:
-        year, month = [int(ym) for ym in args.month.split("-")]
-        title = args.month
+    year, month, day = None, None, None
+    if args.date:
+        try:
+            date = dt.strptime(args.date, "%Y-%m")
+            year, month = date.year, date.month
+        except ValueError:
+            date = dt.strptime(args.date, "%Y-%m-%d")
+            year, month, day = date.year, date.month, date.day
+        title = args.date
     else:
-        year, month = None, None
-        suffix = "" if args.yearsago == 1 else "s"
-        title = f"{args.yearsago} year{suffix} ago"
+        suffix = "" if args.y == 1 else "s"
+        title = f"{args.y} year{suffix} ago"
 
-    posts = pinhop(yearsago=args.yearsago, year=year, month=month)
+    posts = pinhop(yearsago=args.y, year=year, month=month, day=day)
     page = assemble_page(posts, title=title)
     with open(fname, "w") as f:
         f.write(page)
