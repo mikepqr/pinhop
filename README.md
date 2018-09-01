@@ -2,6 +2,8 @@
 
 Timehop for Pinboard.
 
+Get pinboard posts from a previous month or day as a pinboard-style web page.
+
 ## Installation
 
 Requires Python 3.6+ (f-strings) and requests (e.g. `pip install --user
@@ -12,13 +14,13 @@ Copy [pinhop](pinhop) into your path.
 ## Usage
 
 ```
-usage: pinhop [-h] [--token TOKEN] [-o OUT] [--month MONTH] [--open] yearsago
+usage: pinhop [-h] [--token TOKEN] [-o OUT] [--date DATE] [--open] [y]
 
-Get pinboard posts from a previous month. By default, writes posts from this
-month one year ago to pinhop.html.
+Get pinboard posts from a previous month or day. By default, writes posts from
+this month one year ago to pinhop.html.
 
 positional arguments:
-  yearsago           years ago this month
+  y                  years ago this month
 
 optional arguments:
   -h, --help         show this help message and exit
@@ -26,7 +28,7 @@ optional arguments:
                      https://pinboard.in/settings/password). Required if
                      PINBOARD_TOKEN environment variable not set.
   -o OUT, --out OUT  output file
-  --month MONTH      Get posts for particular month in YYYY-MM format
-                     (overrides -y)
+  --date DATE        Get posts for particular month (YYYY-MM format) or day
+                     (YYYY-MM-DD) (overrides y)
   --open             Load in browser when finished (macOS only)
 ```
