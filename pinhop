@@ -129,7 +129,9 @@ def main():
         "from this month one year ago to pinhop.html."
     )
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("yearsago", help="years ago this month", default=1, type=int)
+    parser.add_argument(
+        "yearsago", help="years ago this month", default=1, nargs="?", type=int
+    )
     parser.add_argument(
         "--token",
         default=None,
