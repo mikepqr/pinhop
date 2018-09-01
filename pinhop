@@ -1,0 +1,178 @@
+#!/usr/bin/env python
+import argparse
+import calendar
+import datetime
+import os
+
+import requests
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = iter
+
+
+try:
+    auth_token = os.environ["PINBOARD_TOKEN"]
+except KeyError:
+    auth_token = None
+
+
+def add_auth(params):
+    global auth_token
+    if not auth_token:
+        raise ValueError(
+            "Auth token unset. Configure PINBOARD_TOKEN "
+            "environment variable or provide --token command line "
+            "argument."
+        )
+    return {**params, **{"auth_token": auth_token, "format": "json"}}
+
+
+def days_of_month(year, month):
+    """
+    Return list of YYYY-MM-DD strings for all days in year-month.
+    """
+    days_in_month = calendar.monthrange(2018, 8)[1]
+    return [f"{year}-{month:02d}-{day}" for day in range(1, days_in_month + 1)]
+
+
+def get_posts_days(days):
+    """
+    Returns list of posts for list of days (where each day is a YYYY-MM-DD
+    string.
+    """
+    endpoint = "https://api.pinboard.in/v1/posts/get"
+    jsons = [
+        requests.get(endpoint, params=add_auth({"dt": day})).json()
+        for day in tqdm(days)
+    ]
+    return [post for json in jsons for post in json["posts"]]
+
+
+def format_extended(extended):
+    return "<br />".join(extended.strip().split("\n"))
+
+
+def format_tags(tags):
+    return "&nbsp;".join(f'<a class="tag" href="#">{tag}</a>' for tag in tags.split())
+
+
+def format_time(isotime):
+    return isotime[:10]
+
+
+def post_html(post):
+    extended = format_extended(post["extended"])
+    tags = format_tags(post["tags"])
+    time = format_time(post["time"])
+    return f"""
+    <div class="bookmark">
+        <div class="display">
+            <div class="title">
+                <a class="title" href="{post["href"]}">{post["description"]}</a>
+            </div>
+            <div class="description">{extended}</div>
+            {tags}
+            <div><a class="when">{time}</a></div>
+        </div>
+    </div>
+    """
+
+
+def posts_html(posts):
+    return "\n".join(post_html(post) for post in posts)
+
+
+def assemble_page(posts, title=""):
+    return f"""
+    <html><head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>{" ".join(("Pinhop", title))}</title>
+    <link rel="stylesheet" href="https://pinboard.in/stylesheets/main.css?r=32" />
+    </head>
+    <body>
+    <div id="banner">
+    <div id="logo">
+        <a id="pinboard_name" href="#">{" ".join(("Pinhop", title))}
+    </div>
+    <div id="top_menu">&nbsp;</div>
+    <div style="clear:both"></div>
+    </div>
+    <div id="content" style="width: 700px; margin: 0;">
+        <div id="main_column">
+            <div id="bookmarks">
+                {posts_html(posts)}
+            </div>
+        </div>
+    </div>
+    </body>
+    </html>
+    """
+
+
+def pinhop(yearsago=1, year=None, month=None):
+    """
+    Return bookmarks posted this month years ago, or in a specific year and
+    month.
+    """
+    if year is None and month is None:
+        today = datetime.datetime.today()
+        year, month = today.year - yearsago, today.month
+    days = days_of_month(year, month)
+    return get_posts_days(days)
+
+
+def main():
+    description = (
+        "Get pinboard posts from a previous month. By default, writes posts "
+        "from this month one year ago to pinhop.html."
+    )
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("yearsago", help="years ago this month", default=1, type=int)
+    parser.add_argument(
+        "--token",
+        default=None,
+        help=(
+            "Pinboard API token (see https://pinboard.in/settings/password). "
+            "Required if PINBOARD_TOKEN environment variable not set."
+        ),
+    )
+    parser.add_argument("-o", "--out", default="pinhop.html", help="output file")
+    parser.add_argument(
+        "--month",
+        help="Get posts for particular month in YYYY-MM format (overrides -y)",
+        default=None,
+    )
+    parser.add_argument(
+        "--open",
+        help="Load in browser when finished (macOS only)",
+        default=False,
+        action="store_true",
+    )
+    args = parser.parse_args()
+
+    if args.token:
+        global auth_token
+        auth_token = args.token
+    if args.out:
+        fname = args.out
+
+    if args.month:
+        year, month = [int(ym) for ym in args.month.split("-")]
+        title = args.month
+    else:
+        year, month = None, None
+        suffix = "" if args.yearsago == 1 else "s"
+        title = f"{args.yearsago} year{suffix} ago"
+
+    posts = pinhop(yearsago=args.yearsago, year=year, month=month)
+    page = assemble_page(posts, title=title)
+    with open(fname, "w") as f:
+        f.write(page)
+    if args.open:
+        os.system(f"open {fname}")
+
+
+if __name__ == "__main__":
+    main()
