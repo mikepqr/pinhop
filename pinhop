@@ -26,7 +26,8 @@ def add_auth(params):
             "environment variable or provide --token command line "
             "argument."
         )
-    return {**params, **{"auth_token": auth_token, "format": "json"}}
+    params.update({"auth_token": auth_token, "format": "json"})
+    return params
 
 
 def days_of_month(year, month):
@@ -34,7 +35,8 @@ def days_of_month(year, month):
     Return list of YYYY-MM-DD strings for all days in year-month.
     """
     days_in_month = calendar.monthrange(2018, 8)[1]
-    return [f"{year}-{month:02d}-{day}" for day in range(1, days_in_month + 1)]
+    return ["{year}-{month:02d}-{day}".format(year=year, month=month, day=day)
+            for day in range(1, days_in_month + 1)]
 
 
 def get_posts_days(days):
@@ -51,11 +53,12 @@ def get_posts_days(days):
 
 
 def format_extended(extended):
-    return "<br />".join(extended.strip().split("\n"))
+    return u"<br />".join(extended.strip().split("\n"))
 
 
 def format_tags(tags):
-    return "&nbsp;".join(f'<a class="tag" href="#">{tag}</a>' for tag in tags.split())
+    return u"&nbsp;".join('<a class="tag" href="#">{}</a>'.format(tag)
+                          for tag in tags.split())
 
 
 def format_time(isotime):
@@ -63,21 +66,25 @@ def format_time(isotime):
 
 
 def post_html(post):
-    extended = format_extended(post["extended"])
-    tags = format_tags(post["tags"])
-    time = format_time(post["time"])
-    return f"""
+    data = {
+        "extended": format_extended(post["extended"]),
+        "tags": format_tags(post["tags"]),
+        "time": format_time(post["time"]),
+        "href": post["href"],
+        "description": post["description"],
+    }
+    return u"""
     <div class="bookmark">
         <div class="display">
             <div class="title">
-                <a class="title" href="{post["href"]}">{post["description"]}</a>
+                <a class="title" href="{href}">{description}</a>
             </div>
             <div class="description">{extended}</div>
             {tags}
             <div><a class="when">{time}</a></div>
         </div>
     </div>
-    """
+    """.format(**data)
 
 
 def posts_html(posts):
@@ -85,16 +92,20 @@ def posts_html(posts):
 
 
 def assemble_page(posts, title=""):
-    return f"""
+    data = {
+        "title": " ".join(("Pinhop", title)),
+        "posts": posts_html(posts),
+    }
+    return u"""
     <html><head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-    <title>{" ".join(("Pinhop", title))}</title>
+    <title>{title}</title>
     <link rel="stylesheet" href="https://pinboard.in/stylesheets/main.css?r=32" />
     </head>
     <body>
     <div id="banner">
     <div id="logo">
-        <a id="pinboard_name" href="#">{" ".join(("Pinhop", title))}
+        <a id="pinboard_name" href="#">{title}</a>
     </div>
     <div id="top_menu">&nbsp;</div>
     <div style="clear:both"></div>
@@ -102,13 +113,13 @@ def assemble_page(posts, title=""):
     <div id="content" style="width: 700px; margin: 0;">
         <div id="main_column">
             <div id="bookmarks">
-                {posts_html(posts)}
+                {posts}
             </div>
         </div>
     </div>
     </body>
     </html>
-    """
+    """.format(**data)
 
 
 def pinhop(yearsago=1, year=None, month=None, day=None):
@@ -181,14 +192,18 @@ def main():
         title = args.date
     else:
         suffix = "" if args.y == 1 else "s"
-        title = f"{args.y} year{suffix} ago"
+        title = "{y} year{suffix} ago".format(y=args.y, suffix=suffix)
 
     posts = pinhop(yearsago=args.y, year=year, month=month, day=day)
     page = assemble_page(posts, title=title)
     with open(fname, "w") as f:
-        f.write(page)
+        try:
+            f.write(page)
+        except UnicodeEncodeError:
+            f.write(page.encode("utf-8"))
+
     if args.open:
-        os.system(f"open {fname}")
+        os.system("open {}".format(fname))
 
 
 if __name__ == "__main__":
