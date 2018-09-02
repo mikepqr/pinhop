@@ -8,8 +8,7 @@ Get pinboard posts from a previous month or day as a pinboard-style web page.
 
 Copy [pinhop](pinhop) into your path.
 
-Requires requests (e.g. `pip install --user requests`). Uses `tqdm` if
-installed (optional).
+Uses `tqdm` if installed (optional, e.g. `pip install --user tqdm`).
 
 ## Usage
 
