@@ -157,7 +157,7 @@ def main():
     )
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument(
-        "y", help="years ago this month", default=1, nargs="?", type=int
+        "y", help="Number of years ago this month", default=1, nargs="?", type=int
     )
     parser.add_argument(
         "--token",
@@ -167,7 +167,7 @@ def main():
             "Required if PINBOARD_TOKEN environment variable not set."
         ),
     )
-    parser.add_argument("-o", "--out", default="pinhop.html", help="output file")
+    parser.add_argument("-o", "--out", default="pinhop.html", help="Output file")
     parser.add_argument(
         "--date",
         help=(
@@ -178,7 +178,7 @@ def main():
     )
     parser.add_argument(
         "--open",
-        help="Load in browser when finished (macOS only)",
+        help="Load output file in browser when finished (macOS only)",
         default=False,
         action="store_true",
     )

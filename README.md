@@ -19,15 +19,15 @@ Get pinboard posts from a previous month or day. By default, writes posts from
 this month one year ago to pinhop.html.
 
 positional arguments:
-  y                  years ago this month
+  y                  Number of years ago this month
 
 optional arguments:
   -h, --help         show this help message and exit
   --token TOKEN      Pinboard API token (see
                      https://pinboard.in/settings/password). Required if
                      PINBOARD_TOKEN environment variable not set.
-  -o OUT, --out OUT  output file
+  -o OUT, --out OUT  Output file
   --date DATE        Get posts for particular month (YYYY-MM format) or day
                      (YYYY-MM-DD) (overrides y)
-  --open             Load in browser when finished (macOS only)
+  --open             Load output file in browser when finished (macOS only)
 ```
