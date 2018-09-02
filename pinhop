@@ -41,7 +41,7 @@ def days_of_month(year, month):
     Return list of YYYY-MM-DD strings for all days in year-month.
     """
     days_in_month = calendar.monthrange(2018, 8)[1]
-    return ["{year}-{month:02d}-{day}".format(year=year, month=month, day=day)
+    return ["{year}-{month:02d}-{day:02d}".format(year=year, month=month, day=day)
             for day in range(1, days_in_month + 1)]
 
 
