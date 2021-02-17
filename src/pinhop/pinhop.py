@@ -1,27 +1,19 @@
-#!/usr/bin/env python
 import argparse
 import calendar
 import json
 import os
 from datetime import datetime as dt
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
-try:
-    from urllib.request import urlopen
-    from urllib.parse import urlencode
-except ImportError:
-    from urllib import urlopen, urlencode
+from tqdm import tqdm
 
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    tqdm = iter
-
+from pinhop.css import css
 
 try:
     auth_token = os.environ["PINBOARD_TOKEN"]
 except KeyError:
-    auth_token = None
+    auth_token = ""
 
 
 def add_auth(params):
@@ -40,7 +32,7 @@ def days_of_month(year, month):
     """
     Return list of YYYY-MM-DD strings for all days in year-month.
     """
-    days_in_month = calendar.monthrange(2018, 8)[1]
+    days_in_month = calendar.monthrange(year, month)[1]
     return [
         "{year}-{month:02d}-{day:02d}".format(year=year, month=month, day=day)
         for day in range(1, days_in_month + 1)
@@ -112,12 +104,18 @@ def posts_html(posts):
 
 
 def assemble_page(posts, title=""):
-    data = {"title": " ".join(("Pinhop", title)), "posts": posts_html(posts)}
+    data = {
+        "title": " ".join(("Pinhop", title)),
+        "posts": posts_html(posts),
+        "css": css,
+    }
     return u"""
     <html><head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <title>{title}</title>
-    <link rel="stylesheet" href="https://pinboard.in/stylesheets/main.css?r=32" />
+    <style>
+    {css}
+    </style>
     </head>
     <body>
     <div id="banner">
@@ -194,11 +192,11 @@ def main():
     )
     args = parser.parse_args()
 
+    fname = args.out
+
     if args.token:
         global auth_token
         auth_token = args.token
-    if args.out:
-        fname = args.out
 
     year, month, day = None, None, None
     if args.date:
@@ -219,7 +217,7 @@ def main():
         try:
             f.write(page)
         except UnicodeEncodeError:
-            f.write(page.encode("utf-8"))
+            f.write(page)
 
     if args.open:
         os.system("open {}".format(fname))
