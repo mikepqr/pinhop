@@ -1,4 +1,3 @@
-import argparse
 import calendar
 import json
 import os
@@ -6,14 +5,12 @@ from datetime import datetime as dt
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
+import typer
 from tqdm import tqdm
 
 from pinhop.css import css
 
-try:
-    auth_token = os.environ["PINBOARD_TOKEN"]
-except KeyError:
-    auth_token = ""
+auth_token = os.environ.get("PINBOARD_TOKEN", "")
 
 
 def add_auth(params):
@@ -59,13 +56,13 @@ def get_posts_days(days):
 
 
 def format_extended(extended):
-    return u"<br />".join(extended.strip().split("\n"))
+    return "<br />".join(extended.strip().split("\n"))
 
 
 def format_tags(post):
     tags = post["tags"].split()
     urls = ["https://pinboard.in/u:{}/t:".format(post["user"]) + tag for tag in tags]
-    return u"&nbsp;".join(
+    return "&nbsp;".join(
         '<a class="tag" href="{url}">{tag}</a>'.format(url=url, tag=tag)
         for tag, url in zip(tags, urls)
     )
@@ -83,7 +80,7 @@ def post_html(post):
         "href": post["href"],
         "description": post["description"],
     }
-    return u"""
+    return """
     <div class="bookmark">
         <div class="display">
             <div class="title">
@@ -109,7 +106,7 @@ def assemble_page(posts, title=""):
         "posts": posts_html(posts),
         "css": css,
     }
-    return u"""
+    return """
     <html><head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <title>{title}</title>
@@ -139,7 +136,7 @@ def assemble_page(posts, title=""):
     )
 
 
-def pinhop(yearsago=1, year=None, month=None, day=None):
+def get_posts(yearsago=1, year=None, month=None, day=None):
     """
     Return bookmarks posted this month years ago, or in a specific year and
     month.
@@ -158,70 +155,61 @@ def pinhop(yearsago=1, year=None, month=None, day=None):
     return get_posts_days(days)
 
 
-def main():
-    description = (
-        "Get pinboard posts from a previous month or day. By default, writes "
-        "posts from this month one year ago to pinhop.html."
-    )
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument(
-        "y", help="Number of years ago this month", default=1, nargs="?", type=int
-    )
-    parser.add_argument(
+def pinhop(
+    yearsago: int = typer.Option(
+        1, "--yearsago", "-y", help="Number of years ago this month"
+    ),
+    cli_token: str = typer.Option(
+        None,
         "--token",
-        default=None,
         help=(
             "Pinboard API token (see https://pinboard.in/settings/password). "
             "Required if PINBOARD_TOKEN environment variable not set."
         ),
-    )
-    parser.add_argument("-o", "--out", default="pinhop.html", help="Output file")
-    parser.add_argument(
-        "--date",
+    ),
+    fname: str = typer.Option("pinhop.html", "--out", help="Output file"),
+    date: str = typer.Option(
+        None,
         help=(
             "Get posts for particular month (YYYY-MM format) or day "
             "(YYYY-MM-DD) (overrides y)"
         ),
-        default=None,
-    )
-    parser.add_argument(
-        "--open",
-        help="Load output file in browser when finished (macOS only)",
-        default=False,
-        action="store_true",
-    )
-    args = parser.parse_args()
+    ),
+    browse: bool = typer.Option(
+        False,
+        help="Load output file in browser when finished",
+    ),
+):
+    """
+    Get pinboard posts from a previous month or day. By default, writes
+    posts from this month one year ago to pinhop.html.
+    """
 
-    fname = args.out
-
-    if args.token:
+    if cli_token:
         global auth_token
-        auth_token = args.token
+        auth_token = cli_token
 
     year, month, day = None, None, None
-    if args.date:
+    if date:
         try:
-            date = dt.strptime(args.date, "%Y-%m")
-            year, month = date.year, date.month
+            date_dt = dt.strptime(date, "%Y-%m")
+            year, month, day = date_dt.year, date_dt.month, None
         except ValueError:
-            date = dt.strptime(args.date, "%Y-%m-%d")
-            year, month, day = date.year, date.month, date.day
-        title = args.date
+            date_dt = dt.strptime(date, "%Y-%m-%d")
+            year, month, day = date_dt.year, date_dt.month, date_dt.day
+        title = date
     else:
-        suffix = "" if args.y == 1 else "s"
-        title = "{y} year{suffix} ago".format(y=args.y, suffix=suffix)
+        suffix = "" if yearsago == 1 else "s"
+        title = f"{yearsago} year{suffix} ago"
 
-    posts = pinhop(yearsago=args.y, year=year, month=month, day=day)
+    posts = get_posts(yearsago=yearsago, year=year, month=month, day=day)
     page = assemble_page(posts, title=title)
     with open(fname, "w") as f:
-        try:
-            f.write(page)
-        except UnicodeEncodeError:
-            f.write(page)
+        f.write(page)
 
-    if args.open:
-        os.system("open {}".format(fname))
+    if browse:
+        typer.launch(fname)
 
 
-if __name__ == "__main__":
-    main()
+def main():
+    typer.run(pinhop)
