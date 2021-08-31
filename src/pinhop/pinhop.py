@@ -1,6 +1,5 @@
 import calendar
 import json
-import os
 from datetime import datetime as dt
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -9,8 +8,6 @@ import typer
 from tqdm import tqdm
 
 from pinhop.css import css
-
-auth_token = os.environ.get("PINBOARD_TOKEN", "")
 
 
 def add_auth(params):
@@ -166,6 +163,7 @@ def pinhop(
             "Pinboard API token (see https://pinboard.in/settings/password). "
             "Required if PINBOARD_TOKEN environment variable not set."
         ),
+        envvar="PINBOARD_TOKEN",
     ),
     fname: str = typer.Option("pinhop.html", "--out", help="Output file"),
     date: str = typer.Option(
@@ -185,9 +183,8 @@ def pinhop(
     posts from this month one year ago to pinhop.html.
     """
 
-    if cli_token:
-        global auth_token
-        auth_token = cli_token
+    global auth_token
+    auth_token = cli_token
 
     year, month, day = None, None, None
     if date:
