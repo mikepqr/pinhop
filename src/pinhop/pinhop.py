@@ -9,6 +9,8 @@ from tqdm import tqdm
 
 from pinhop.css import css
 
+auth_token: str
+
 
 def add_auth(params):
     global auth_token
@@ -27,15 +29,12 @@ def days_of_month(year, month):
     Return list of YYYY-MM-DD strings for all days in year-month.
     """
     days_in_month = calendar.monthrange(year, month)[1]
-    return [
-        "{year}-{month:02d}-{day:02d}".format(year=year, month=month, day=day)
-        for day in range(1, days_in_month + 1)
-    ]
+    return [f"{year}-{month:02d}-{day:02d}" for day in range(1, days_in_month + 1)]
 
 
 def get_day(day):
     params = add_auth({"dt": day})
-    url = "https://api.pinboard.in/v1/posts/get?{}".format(urlencode(params))
+    url = f"https://api.pinboard.in/v1/posts/get?{urlencode(params)}"
     r = urlopen(url)
     return json.loads(r.read())
 
@@ -60,8 +59,7 @@ def format_tags(post):
     tags = post["tags"].split()
     urls = ["https://pinboard.in/u:{}/t:".format(post["user"]) + tag for tag in tags]
     return "&nbsp;".join(
-        '<a class="tag" href="{url}">{tag}</a>'.format(url=url, tag=tag)
-        for tag, url in zip(tags, urls)
+        f'<a class="tag" href="{url}">{tag}</a>' for tag, url in zip(tags, urls)
     )
 
 
